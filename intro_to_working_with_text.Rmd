@@ -1,0 +1,124 @@
+---
+title: "Intro to working with text"
+author: "Me"
+date: "11/23/2022"
+output: html_document
+---
+
+```{r message=FALSE}
+library(tidytext)
+library(dplyr)
+library(wordcloud2)
+```
+
+We'll be leveraging the `tidytext` package due to its approachability and focus on the data.frame as the main object type for analysis.
+
+The package has an accompanying book for free online here: <https://www.tidytextmining.com/>.
+
+```{r}
+office <- read.csv("the_office_script.csv")
+dim(office)
+names(office)
+```
+
+## Text as a "bag of words"
+
+<p align="center">
+  <img src="https://i.imgur.com/UP9md9v.png" width="50%"/>
+</p>
+
+Many traditional methods for text analytics treat text as an unordered collection of words. This leads to many techniques that boil down to counting how many times different words occur. Many more modern methods take more advantage of neural networks and word embeddings to focus more on a word's context.
+
+However, bag of words techniques are still worthwhile due to them being:
+
+-   foundational learning to working with text
+-   great cost-benefit for many applications' needs
+
+## "Tokenizing"
+
+The unit of analysis in a bag of words approach is a single word or a "token".
+
+`tidytext`'s approach to this is the `unnest_tokens` function:
+
+```{r}
+office_tokens <- office %>%
+  unnest_tokens(token, line_text)
+
+office_tokens %>%
+  select(speaker, token) %>%
+  head()
+```
+
+We can now start to do different counting tasks using typical R data.frame methods.
+
+Most commonly occurring words:
+
+```{r}
+top_tokens <- office_tokens %>%
+  group_by(token) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+top_tokens %>%
+  head()
+```
+
+Ahh the insights! Maybe putting this into a word cloud will make it better...? (it won't... we need a way to address this)
+
+```{r}
+# wordcloud2 package wants the column names word and freq
+names(top_tokens) <- c("word", "freq")
+wordcloud2(top_tokens)
+```
+
+## "Stop words"
+
+<p align="center">
+  <img src="https://i.imgur.com/mi3vRt7.jpg" width="50%"/>
+</p>
+
+In the past section we tried to do an analysis of the most common words and it turns out the most common words are boring... Luckily we're not the first ones to come across this issue.  These are referred to as *stop words*, there are different lists we can use to remove these.  The `tidytext` package provides a `stop_words` data.frame that holds 3 separate lists; we can either choose one or just use them all.
+
+```{r}
+# stop words per list
+stop_words %>%
+  group_by(lexicon) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+```
+
+```{r}
+# example of some stopwords
+stop_words[sample(nrow(stop_words), size = 8), ]
+```
+
+To remove these words from our tokens we can do some filtering.
+
+```{r}
+filtered_top_tokens <- top_tokens %>%
+  anti_join(stop_words, by = "word")
+
+paste(nrow(top_tokens) - nrow(filtered_top_tokens), "instances of stop words removed")
+```
+
+
+```{r}
+wordcloud2(filtered_top_tokens)
+```
+## Practice!
+
+Practice tokenizing text and data manipulation by:
+* Finding the top speaker in the office by number of lines
+* Finding the top speaker in the office by number of words said
+  * Does this differ?
+* Which speaker has the longest lines on average?
+
+```{r}
+```
+
+Practice stop word removal by:
+* Finding the top speaker in the office by number of words said, but be sure to exclude stop words
+* Make a word cloud of 1 or more of the characters, but be sure to exclude stop words
+
+```{r}
+```
