@@ -1,8 +1,11 @@
 ---
-title: "Intro to working with text using the script of *The Office*"
+title: "Intro to text analysis using the script of *The Office*"
 author: "Me"
-date: "11/23/2022"
-output: html_document
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    includes:
+      in_header: "favicon.html"
 ---
 
 Goals:
