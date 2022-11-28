@@ -4,9 +4,20 @@ author: "Me"
 date: "`r Sys.Date()`"
 output: 
   html_document:
+    theme: united
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
     includes:
       in_header: "favicon.html"
 ---
+
+<center>
+
+<img src='https://miro.medium.com/max/500/1*xDIevNE7HEMiJQVTYg0qDQ.png' width = 50%>
+
+</center>
 
 Goals:
 
@@ -26,6 +37,12 @@ library(textdata)
 library(wordcloud2)
 library(ggplot2)
 ```
+
+<center>
+
+<img src='https://www.tidytextmining.com/images/cover.png' width = 20%>
+
+</center>
 
 We'll be leveraging the `tidytext` package due to its approachability and focus on the `data.frame` as the main object type for analysis.
 
@@ -47,11 +64,11 @@ names(office)
 
 ## Text as a "bag of words"
 
-<p align="center">
+<center>
 
 <img src="https://i.imgur.com/UP9md9v.png" width="50%"/>
 
-</p>
+</center>
 
 Many traditional methods for text analytics treat text as an unordered collection of words. This leads to many techniques that boil down to counting how many times different words occur. Many more modern methods take more advantage of neural networks and word embeddings to focus more on a word's context.
 
@@ -61,6 +78,12 @@ However, bag of words techniques are still worthwhile due to them being:
 -   great cost-benefit for many applications' needs
 
 ## "Tokenizing"
+
+<center>
+
+<img src="https://miro.medium.com/max/1400/1*GUkLs8DB0kpcPfiqUc_XPw.jpeg" width="40%"/>
+
+</center>
 
 The unit of analysis in a bag of words approach is a single word or a "token".
 
@@ -91,11 +114,11 @@ top_tokens %>%
 
 ## "Stop words"
 
-<p align="center">
+<center>
 
 <img src="https://i.imgur.com/mi3vRt7.jpg" width="50%"/>
 
-</p>
+</center>
 
 In the past section we tried to do an analysis of the most common words and it turns out the most common words are boring... Luckily we're not the first ones to come across this issue. These are referred to as *stop words*, there are different lists we can use to remove these. The `tidytext` package provides a `stop_words` `data.frame` that holds 3 separate lists; we can either choose one or just use them all.
 
@@ -121,13 +144,13 @@ filtered_top_tokens <- top_tokens %>%
 paste(nrow(top_tokens) - nrow(filtered_top_tokens), "instances of stop words removed")
 ```
 
-```{r}
+```{r fig.align='center'}
 wordcloud2(filtered_top_tokens)
 ```
 
 There's still some words that you might not find too valuable for this analysis. Keep in mind that you aren't limited to using the words in a pre-definded list.  There might be some times where building an industry specific set of stop words might make sense.
 
-## Practice!
+### Practice!
 
 Practice tokenizing text and data manipulation by:
 
@@ -149,6 +172,12 @@ Practice stop word removal by:
 ```
 
 ## Stemming & lemmatization
+
+<center>
+
+<img src='https://i.imgur.com/HFamIMt.png' width=50%>
+
+</center>
 
 ### Stemming
 
@@ -214,6 +243,12 @@ PS no one is stopping you from doing both stemming and lemmatization.  If you ap
 
 ## Sentiment analysis with dictionaries
 
+<center>
+
+<img src='https://vitalflux.com/wp-content/uploads/2021/10/sentiment-analysis-machine-learning-techniques.png' width=50%>
+
+</center>
+
 "Sentiment analysis" is a term used where we try and describe text based on what feelings it emits.  This can be feelings of "positive" vs "negative" or it can get more into nuanced sentiments like "anger", "fear", "trust".
 
 One way to do sentiment analysis is with a dictionary based approach.  This has the typical limitations of dictionary based approaches: it only works if the word is in your dictionary.
@@ -269,7 +304,7 @@ A limitation of this dictionary approach is only considering a single word at ti
 
 Due to these limitations, more modern/cutting edge sentiment methods utilize deep learning.  This isn't to say that the dictionary methods are totally useless.  If you know your corpus and have some expectations of the results (and follow-up analysis on results) you'll be able to tell if the dictionary approach isn't cutting it for your application.
 
-## Practice!
+### Practice!
 
 Practice tokenizing text and data manipulation by:
 
@@ -281,6 +316,12 @@ Practice tokenizing text and data manipulation by:
 ```
 
 ## TF-IDF
+
+<center>
+
+<img src='https://miro.medium.com/max/1200/1*qQgnyPLDIkUmeZKN2_ZWbQ.png' width=50%>
+
+</center>
 
 Let's revisit the motivation first using stop words. We like removing stopwords because they are so common that they don't provide value, but general stopwords might not cut it. For example, in the world of *The Office* they work at the a paper company, maybe we want to consider "paper" a stop word.
 
@@ -310,7 +351,7 @@ tfidf_by_speaker %>%
   head(8)
 ```
 
-## Practice!
+### Practice!
 
 Practice TF-IDF analysis by:
 
