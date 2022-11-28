@@ -1,19 +1,40 @@
 ---
-title: "Intro to working with text"
+title: "Intro to working with text using the script of *The Office*"
 author: "Me"
 date: "11/23/2022"
 output: html_document
 ---
 
+Goals:
+
+Expose you to some foundational techniques & vocab for analyzing text. There is a focus on "bag of words" techniques rather than diving into deep learning techniques (foundations first).  Brevity was valued over agonizing detail.
+
 ```{r message=FALSE}
-library(tidytext)
+# data manipulation
 library(dplyr)
+
+# text stuff
+library(tidytext)
+library(SnowballC)
+library(textstem)
+library(textdata)
+
+# visuals
 library(wordcloud2)
+library(ggplot2)
 ```
 
-We'll be leveraging the `tidytext` package due to its approachability and focus on the data.frame as the main object type for analysis.
+We'll be leveraging the `tidytext` package due to its approachability and focus on the `data.frame` as the main object type for analysis.
 
 The package has an accompanying book for free online here: <https://www.tidytextmining.com/>.
+
+The data being used is every line in the script from the TV show: *The Office*.  The data was sourced from [this post on Reddit](https://www.reddit.com/r/datasets/comments/b30288/every_line_from_every_episode_of_the_office/), and can be found directly in [this google sheet](https://docs.google.com/spreadsheets/d/18wS5AAwOh8QO95RwHLS95POmSNKA2jjzdt0phrxeAE0/edit#gid=747974534).
+
+*First vocab words!!*
+
+* A *corpus* is the full collection of text that you're analyzing
+* A *document* is the buckets of text within the corpus
+  * Here a document would be a line of dialogue; although we use the word "document", it has a flexible definition depending on what naturally groups your text together in the corpus.
 
 ```{r}
 office <- read.csv("the_office_script.csv")
@@ -24,7 +45,9 @@ names(office)
 ## Text as a "bag of words"
 
 <p align="center">
-  <img src="https://i.imgur.com/UP9md9v.png" width="50%"/>
+
+<img src="https://i.imgur.com/UP9md9v.png" width="50%"/>
+
 </p>
 
 Many traditional methods for text analytics treat text as an unordered collection of words. This leads to many techniques that boil down to counting how many times different words occur. Many more modern methods take more advantage of neural networks and word embeddings to focus more on a word's context.
@@ -38,24 +61,24 @@ However, bag of words techniques are still worthwhile due to them being:
 
 The unit of analysis in a bag of words approach is a single word or a "token".
 
-`tidytext`'s approach to this is the `unnest_tokens` function:
+`tidytext`'s approach to this is the `unnest_tokens` function.  It will break up each *document* into it's individual tokens while still keeping useful ID information in the rows.
 
 ```{r}
 office_tokens <- office %>%
-  unnest_tokens(token, line_text)
+  unnest_tokens(word, line_text)
 
 office_tokens %>%
-  select(speaker, token) %>%
+  select(speaker, word) %>%
   head()
 ```
 
-We can now start to do different counting tasks using typical R data.frame methods.
+We can now start to do different counting tasks using typical R `data.frame` methods.
 
-Most commonly occurring words:
+Most commonly occurring words shown below. Ahh the insights!
 
 ```{r}
 top_tokens <- office_tokens %>%
-  group_by(token) %>%
+  group_by(word) %>%
   summarise(count = n()) %>%
   arrange(-count)
 
@@ -63,21 +86,15 @@ top_tokens %>%
   head()
 ```
 
-Ahh the insights! Maybe putting this into a word cloud will make it better...? (it won't... we need a way to address this)
-
-```{r}
-# wordcloud2 package wants the column names word and freq
-names(top_tokens) <- c("word", "freq")
-wordcloud2(top_tokens)
-```
-
 ## "Stop words"
 
 <p align="center">
-  <img src="https://i.imgur.com/mi3vRt7.jpg" width="50%"/>
+
+<img src="https://i.imgur.com/mi3vRt7.jpg" width="50%"/>
+
 </p>
 
-In the past section we tried to do an analysis of the most common words and it turns out the most common words are boring... Luckily we're not the first ones to come across this issue.  These are referred to as *stop words*, there are different lists we can use to remove these.  The `tidytext` package provides a `stop_words` data.frame that holds 3 separate lists; we can either choose one or just use them all.
+In the past section we tried to do an analysis of the most common words and it turns out the most common words are boring... Luckily we're not the first ones to come across this issue. These are referred to as *stop words*, there are different lists we can use to remove these. The `tidytext` package provides a `stop_words` `data.frame` that holds 3 separate lists; we can either choose one or just use them all.
 
 ```{r}
 # stop words per list
@@ -101,24 +118,204 @@ filtered_top_tokens <- top_tokens %>%
 paste(nrow(top_tokens) - nrow(filtered_top_tokens), "instances of stop words removed")
 ```
 
-
 ```{r}
 wordcloud2(filtered_top_tokens)
 ```
+
+There's still some words that you might not find too valuable for this analysis. Keep in mind that you aren't limited to using the words in a pre-definded list.  There might be some times where building an industry specific set of stop words might make sense.
+
 ## Practice!
 
 Practice tokenizing text and data manipulation by:
-* Finding the top speaker in the office by number of lines
-* Finding the top speaker in the office by number of words said
-  * Does this differ?
-* Which speaker has the longest lines on average?
+
+-   Finding the top speaker in the office by number of lines
+-   Finding the top speaker in the office by number of words said
+-   Does this differ?
+-   Which speaker has the longest lines on average?
 
 ```{r}
 ```
 
 Practice stop word removal by:
-* Finding the top speaker in the office by number of words said, but be sure to exclude stop words
-* Make a word cloud of 1 or more of the characters, but be sure to exclude stop words
+
+-   Finding the top speaker in the office by number of words said, but be sure to exclude stop words
+-   Make a word cloud of 1 or more of the characters, but be sure to exclude stop words
 
 ```{r}
+
+```
+
+## Stemming & lemmatization
+
+### Stemming
+
+Sometimes we don't want to differentiate between different tenses/usages of the same word; for example, below the word "stop" is used in 4 different ways.  Depending on the insights you want to find you might want to keep these separate or you might to combine them into just one "stop" category.
+
+Chopping of the endings of these words will leave you with the *stem* of "stop".
+
+```{r}
+stops <- top_tokens %>% 
+  filter(grepl("stop", word)) %>% 
+  head(4)
+
+stops
+```
+
+Below we apply the `wordStem()` function from the `SnowballC` package.  This function leaves us with just the *stem* of each word.
+
+```{r}
+stops %>% 
+  mutate(stem = wordStem(word))
+```
+
+If we repeat the same style word counting analysis now we might get some different results (might not... :shrug:). 
+
+In the below cell the complete analysis is restarted from scratch.  Tokenize -> remove stop words -> stem -> aggregate.  I've added the `example_word` column that shows what the word might have looked like before stemming (just 1 of the many potential words).  In some cases it can be tough to see what the word was before stemming (eg see "hei" below which was originally "hey" or "gui" which was originally "guy")
+
+```{r}
+office %>% 
+  unnest_tokens(word, line_text) %>% 
+  anti_join(stop_words, by = "word") %>% 
+  mutate(stem = wordStem(word)) %>% 
+  group_by(stem) %>% 
+  summarise(count = n(), example_word = first(word)) %>% 
+  arrange(-count)
+```
+
+### Lemmatization
+
+Word stemming is a rule based approach to finding word stems: remove 's' from end of word, remove 'ing' from end of word, etc.  This has the pro of being flexible to unique words that might not even appear on urbandictionary.  This has the con of missing words that don't follow the typical rules for changing tense.
+
+The 2 below cases can explain this point more directly.
+
+```{r}
+stops <- c("stops", "stopping", "stopped")
+swims <- c("swim", "swam", "swum")
+```
+
+Word stemming can do well when removing endings is the right move, but it will fail on words that follow patterns that don't concern the word ending.
+
+```{r}
+wordStem(stops)
+wordStem(swims)
+```
+
+A different but like minded process of finding the root of the token is "lemmatization".  We want to find the "lemma" of each input word.  This is shown below to work on both of our example cases.  This has the opposite pros/cons of stemming. Lemmatization relies on a dictionary based approach, so if there is unusual vocab in your corpus it might not be very effective.
+
+```{r}
+lemmatize_words(stops)
+lemmatize_words(swims)
+```
+
+PS no one is stopping you from doing both stemming and lemmatization.  If you apply both, definitely apply lemmatization before stemming.  Lemmatization always outputs a valid English word, stemming can make some words unrecognizable (which would hurt lemmatizing).
+
+## Sentiment analysis with dictionaries
+
+"Sentiment analysis" is a term used where we try and describe text based on what feelings it emits.  This can be feelings of "positive" vs "negative" or it can get more into nuanced sentiments like "anger", "fear", "trust".
+
+One way to do sentiment analysis is with a dictionary based approach.  This has the typical limitations of dictionary based approaches: it only works if the word is in your dictionary.
+
+The `tidytext` package provides routes to multiple sentiment dictionaries:
+
+* "afinn" - provides a word and its score. the score's sign (pos or neg) indicates a positive or negative sentiment. the score's magnitude indicates the strength of the sentiment
+
+* "bing" - provides a word and a label of the word as positive or negative
+* "nrc" - provides a word and a label of the word's sentiment. provides a diverse set of sentiment labels (ie sadness, anger, etc)
+* "loughran" - provides a word and a label of the word's sentiment. Developed from financial reports so this is a powerful or useless dictionary depending on the context: "negative", "positive", "litigious", "uncertainty", "constraining", or "superfluous"
+
+Example using afinn
+
+```{r}
+afinn <- get_sentiments("afinn")
+
+sum_sentiment_by_char <- office_tokens %>% 
+  left_join(afinn, by = "word") %>% 
+  group_by(speaker) %>% 
+  summarise(sentiment = sum(value, na.rm = TRUE))
+
+# Most negative speakers
+sum_sentiment_by_char %>% 
+  arrange(sentiment) %>% 
+  head(3)
+
+# Most positive speakers
+sum_sentiment_by_char %>% 
+  arrange(-sentiment) %>% 
+  head()
+```
+
+Example using bing
+
+```{r}
+nrc <- get_sentiments("nrc")
+
+sum_sentiment_by_char <- office_tokens %>% 
+  left_join(nrc, by = "word") %>% 
+  anti_join(stop_words, by = "word") %>% 
+  filter(!is.na(sentiment)) %>% 
+  group_by(speaker, sentiment) %>% 
+  summarise(count = n(), example_word = first(word)) %>% 
+  arrange(-count)
+
+# Most common speaker x sentiment pairs
+sum_sentiment_by_char %>% 
+  head()
+```
+
+A limitation of this dictionary approach is only considering a single word at time. For example, "good" can express positive sentiment, but what if I had "not" in front of it or "very"?  Some methods try and look into this idea by negating or boosting the score of the following word. However it turns out that's not enough since language can be very nuanced, for example "I just got over having the flu, what a great experience that was..."
+
+Due to these limitations, more modern/cutting edge sentiment methods utilize deep learning.  This isn't to say that the dictionary methods are totally useless.  If you know your corpus and have some expectations of the results (and follow-up analysis on results) you'll be able to tell if the dictionary approach isn't cutting it for your application.
+
+## Practice!
+
+Practice tokenizing text and data manipulation by:
+
+- Finding the top sentiment per season (using any dictionary but afinn)
+- Finding the most positive & negative episodes (using afinn dictionary)
+
+```{r}
+
+```
+
+## TF-IDF
+
+Let's revisit the motivation first using stop words. We like removing stopwords because they are so common that they don't provide value, but general stopwords might not cut it. For example, in the world of *The Office* they work at the a paper company, maybe we want to consider "paper" a stop word.
+
+Instead of always building a stop word dictionary, we can try and put a number to the value of a word.  This is the goal of TF-IDF
+
+TF stands for "term frequency" - its a measure of how often a word appears in a document
+IDF stands for "inverse document frequency" - its a measure of how many documents a word appears in
+
+* Words that appear a lot in many documents are going to essentially be like stopwords and have a low TFIDF.
+* Words that appear infrequently aren't valued by TFIDF and will have a low score
+* Words that appear a lot but just in 1 document are likely words that are important to just that document and they'll have a high TFIDF.
+
+The below analysis removes stopwords and then calculates the tfidf of words by each office character.  It turns out it's a way to find the people they talk about the most (and often turns out to be a love interest finder per person).
+
+```{r}
+# treat each speaker as a "document"
+# what are the highest tf-idf words per speaker
+tfidf_by_speaker <- office_tokens %>% 
+  anti_join(stop_words, by = "word") %>% 
+  group_by(word, speaker) %>% 
+  summarise(n = n()) %>% 
+  bind_tf_idf(word, speaker, n) %>% 
+  arrange(-tf_idf)
+
+tfidf_by_speaker %>% 
+  filter(n > 50) %>% 
+  head(8)
+```
+
+## Practice!
+
+Practice TF-IDF analysis by:
+
+- Finding the top TF-IDF words per season
+- Finding the top TF-IDF words per episode
+- Create a visual to display one of these (or by character)
+  - See [here](https://www.tidytextmining.com/tfidf.html#the-bind_tf_idf-function) for an example of creating TF-IDF barcharts with the `tidytext` and `ggplot2` packages
+
+```{r}
+
 ```
